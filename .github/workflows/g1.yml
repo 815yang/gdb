@@ -1,0 +1,48 @@
+name: Build static GDB for MIPSel
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up MIPSel toolchain
+        uses: jonathandelgado/setup-mipsel-toolchain@v1
+
+      - name: Fetch dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf \
+            automake \
+            libtool \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libgdb-dev \
+            libexpat1-dev \
+            libz-dev \
+            libpython3-dev \
+            git
+
+      - name: Build GDB
+        env:
+          ARCH: mipsel-linux-gnu
+        run: |
+          cd gdb
+          ./configure --target=$ARCH --prefix=$(pwd)/_install --without-x --disable-gas --disable-binutils --disable-gprof --disable-addr2line --disable-libbfd
+          make -j$(nproc) all
+          make install
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: gdb-static
+          path: _install
